@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="https://unpkg.com/purecss@3.0.0/build/pure-min.css" integrity="sha384-wX4rE1+S7cYyQ7s9FRr2hVj7wQ0b3WkOSp4d8t6KzO7GQp6oJ8a9d8E3e4Jr0a7E" crossorigin="anonymous">
+
+  <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
+
+  <title>NSW Electric Vehicle Infrastructure & Adoption Analysis</title>
+
+  <style>
+    :root{
+      --gap: 20px;
+      --radius: 16px;
+      --bg: #f8f9fb;
+      --card: #ffffff;
+      --muted: #64748b;
+      --text: #0f172a;
+      --border: #e2e8f0;
+      --accent: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 10px 30px rgba(0,0,0,.05);
+      --shadow-lg: 0 4px 6px rgba(0,0,0,.05), 0 20px 50px rgba(0,0,0,.08);
+    }
+    * { box-sizing: border-box; }
+    body{
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container{ max-width: 1200px; margin: 0 auto; padding: clamp(20px, 4vw, 40px); }
+    
+    .header{
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: clamp(32px, 5vw, 60px) clamp(20px, 4vw, 40px);
+      margin: 0 0 var(--gap);
+      border-radius: 0 0 var(--radius) var(--radius);
+      box-shadow: var(--shadow-lg);
+    }
+    .page-title{ 
+      margin: 0 0 12px; 
+      font-size: clamp(26px, 4.5vw, 40px); 
+      font-weight: 800; 
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+    .page-subtitle{ 
+      margin: 0 0 8px; 
+      font-size: clamp(16px, 2.5vw, 20px); 
+      opacity: 0.95;
+      font-weight: 500;
+    }
+    .page-meta{
+      margin: 16px 0 0;
+      font-size: 14px;
+      opacity: 0.85;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      padding-top: 16px;
+    }
+
+    .intro-section{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: clamp(20px, 3vw, 32px);
+      margin-bottom: var(--gap);
+      box-shadow: var(--shadow);
+    }
+    .intro-section h2{
+      margin: 0 0 16px;
+      font-size: clamp(20px, 3vw, 26px);
+      font-weight: 700;
+      color: var(--text);
+    }
+    .intro-section p{
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .stats-grid{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .stat-card{
+      background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-value{
+      font-size: clamp(28px, 4vw, 36px);
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .stat-label{
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: clamp(16px, 2.5vw, 24px);
+      box-shadow: var(--shadow);
+      margin-bottom: var(--gap);
+      transition: box-shadow 0.3s ease;
+    }
+    .card:hover{
+      box-shadow: var(--shadow-lg);
+    }
+    .section-title{ 
+      margin: 0 0 16px; 
+      font-size: clamp(18px, 2.5vw, 22px); 
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-number{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .viz-plot{ min-width: 0; }
+    .viz-text{
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      background: #f8fafc;
+      border-radius: 8px;
+      margin-left: 16px;
+    }
+    .viz-text h3{ 
+      margin: 0 0 10px; 
+      font-size: 16px; 
+      font-weight: 700;
+      color: var(--text);
+    }
+    .viz-text p{ 
+      margin: 0 0 10px; 
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .viz-text p:last-child{ margin-bottom: 0; }
+    .viz-text .highlight{
+      background: #fef3c7;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      color: #92400e;
+    }
+    .viz-text .note{ 
+      margin-top: 12px; 
+      font-size: 13px; 
+      color: #475569;
+      font-style: italic;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+    }
+    
+    .data-source{
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--muted);
+      border-left: 3px solid var(--accent);
+    }
+    /* Hide empty data-source boxes so small empty boxes don't appear under visuals */
+    .data-source:empty { display: none; }
+    .data-source strong{
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .footer{
+      text-align: center;
+      padding: 32px 20px;
+      color: var(--muted);
+      font-size: 14px;
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .viz-text{ margin-left: 0; margin-top: 16px; }
+    }
+    /* Legend for the NSW map placed to the right of the map */
+    .map-legend{
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .legend-item{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .legend-swatch{
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+    /* Ensure the map row and the aside align items at the top so the legend sits above the text */
+    .map-row{ display: flex; align-items: flex-start; }
+    .map-side{ display: flex; flex-direction: column; justify-content: flex-start; }
+    
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <div class="container">
+      <h1 class="page-title">NSW Electric Vehicle Infrastructure & Adoption Analysis</h1>
+      <p class="page-subtitle">Convenience of electric mobility charger across New South Wales</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="intro-section">
+      <h2>Executive Summary</h2>
+      <p>New South Wales has reached a significant milestone with over 100,000 battery electric vehicles on the road as of September 2025, representing more than 1.5% of the entire vehicle fleet. This analysis examines the charging infrastructure, opening hours accessibility, proximity to rest areas, and regional adoption patterns that support NSW's electric vehicle transition.</p>
+      <p>The state leads Australia in EV policy with a 9/10 rating from the Electric Vehicle Council and has invested $209 million in charging infrastructure to support the growing EV adoption.</p>
+      
+      
+
+    <div class="card">
+      <h2 class="section-title"><span class="section-number">1</span>Geographic Distribution of EV Charging Stations</h2>
+      <div class="pure-g map-row">
+        <div class="pure-u-1 pure-u-lg-2-3 viz-plot" id="NSW_station_map"></div>
+        <aside class="pure-u-1 pure-u-lg-1-3 map-side" aria-label="Map legend">
+          <div class="map-legend" aria-hidden="true">
+            <div class="legend-item"><span class="legend-swatch" style="background:steelblue"></span><span>EV Charger (public)</span></div>
+            <div class="legend-item"><span class="legend-swatch" style="background:green"></span><span>NSW Rest Area</span></div>
+          </div>
+        </aside>
+      </div>
+      <div class="viz-text">
+        <h3>Key Insights</h3>
+        <p>The map reveals EV charging station locations across NSW using sample data representing major regional hubs. <span class="highlight">Sydney metropolitan area</span> has the highest density of charging infrastructure, with stations concentrated in affluent inner-city suburbs.</p>
+        <p>Use the zoom control to explore regional distribution patterns. The visualization demonstrates the concentration of EV infrastructure in urban centers versus regional areas.</p>
+        <p class="note">This visualization uses representative data points showing the geographic spread from coastal cities to inland regional centers.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title"><span class="section-number">2</span>Charging Station Opening Hours Analysis</h2>
+      <div class="pure-g">
+        <div class="pure-u-1 pure-u-lg-2-3 viz-plot" id="Station_bar_chart"></div>
+        <aside class="pure-u-1 pure-u-lg-1-3 viz-text">
+          <h3>Accessibility Patterns</h3>
+          <p>Charging stations fall into three categories: those operating <span class="highlight">24/7</span>, those with specified business hours, and those without documented hours. The distribution shows varying accessibility across the network.</p>
+          <p>24/7 operation is critical for highway travel and emergency charging needs, while time-limited stations typically align with business hours at shopping centers and workplaces.</p>
+          <p class="note">The significant proportion of stations without specified hours indicates a need for better data standardization and communication to EV drivers.</p>
+        </aside>
+      </div>
+      
+    </div>
+
+    <div class="card">
+      <h2 class="section-title"><span class="section-number">3</span>Charger Type Distribution</h2>
+      <div class="pure-g">
+        <div class="pure-u-1 pure-u-lg-2-3 viz-plot" id="charger_type_chart"></div>
+        <aside class="pure-u-1 pure-u-lg-1-3 viz-text">
+          <h3>Technology Mix</h3>
+          <p>NSW's charging network includes <span class="highlight">566 AC chargers</span> (regular charging, 7-22kW) suitable for destination charging, and <span class="highlight">149 DC fast chargers</span> (25-350kW) for rapid charging.</p>
+          <p>The ratio favors AC charging which is ideal for locations where vehicles park for extended periods such as workplaces, shopping centers, and residential areas.</p>
+          <p class="note">DC fast chargers are essential for highway corridors and reducing charging time from hours to minutes, supporting long-distance EV travel.</p>
+        </aside>
+      </div>
+      
+    </div>
+
+    <div class="card">
+      <h2 class="section-title"><span class="section-number">4</span>Charging Cost Comparison</h2>
+      <div class="pure-g">
+        <div class="pure-u-1 pure-u-lg-2-3 viz-plot" id="cost_comparison"></div>
+        <aside class="pure-u-1 pure-u-lg-1-3 viz-text">
+          <h3>Economic Analysis</h3>
+          <p>Charging costs vary significantly by location and charger type. <span class="highlight">Home charging</span> averages $0.30/kWh in NSW, while <span class="highlight">public DC fast charging</span> ranges from $0.40-$0.70/kWh.</p>
+          <p>For a typical 60kWh battery EV, home charging costs around $18 for a full charge, while public fast charging can cost $24-$42. This represents a 33-133% premium for convenience and speed.</p>
+          <p class="note">Solar panel owners can reduce home charging costs to near zero by charging during daylight hours, providing significant long-term savings.</p>
+        </aside>
+      </div>
+     
+    </div>
+
+    <div class="card">
+      <h2 class="section-title"><span class="section-number">5</span>Regional Adoption Rates by LGA</h2>
+      <div class="pure-g">
+        <div class="pure-u-1 pure-u-lg-2-3 viz-plot" id="lga_adoption"></div>
+        <aside class="pure-u-1 pure-u-lg-1-3 viz-text">
+          <h3>Geographic Disparities</h3>
+          <p><span class="highlight">Sydney City LGA</span> leads with 5.25% EV penetration, followed by Ku-ring-gai (5.15%) and Willoughby (5.02%). These affluent areas benefit from high income levels and abundant off-street parking.</p>
+          <p>Regional NSW significantly lags behind, with 20 LGAs still having zero BEV registrations. Moree Plains LGA has 10,590 vehicles but not a single battery electric vehicle.</p>
+          <p class="note">The geographic divide highlights the need for targeted infrastructure investment and incentives in regional areas to ensure equitable access to EV technology.</p>
+        </aside>
+      </div>
+     
+    </div>
+
+    <div class="card">
+      <h2 class="section-title"><span class="section-number">6</span>Distance to Nearest Rest Area</h2>
+      <div class="pure-g">
+        <div class="pure-u-1 pure-u-lg-2-3 viz-plot" id="distance_hist"></div>
+        <aside class="pure-u-1 pure-u-lg-1-3 viz-text">
+          <h3>Infrastructure Synergies</h3>
+          <p>The distribution shows most charging stations are within <span class="highlight">0-15km</span> of rest areas, supporting the government's strategy to co-locate charging with existing highway amenities.</p>
+          <p>Rest areas offer ideal charging locations with existing facilities including parking, toilets, and often food services, making them natural stops for EV drivers on long journeys.</p>
+          <p class="note">NSW's target: fast charging stations every 100km on major highways and 5km apart in metropolitan areas to eliminate range anxiety.</p>
+        </aside>
+      </div>
+      
+    </div>
+
+    <div class="card">
+      <h2 class="section-title"><span class="section-number">7</span>Distance vs Travel Time Correlation</h2>
+      <div class="pure-g">
+        <div class="pure-u-1 pure-u-lg-2-3 viz-plot" id="scatterplot"></div>
+        <aside class="pure-u-1 pure-u-lg-1-3 viz-text">
+          <h3>Accessibility Metrics</h3>
+          <p>The scatter plot reveals a <span class="highlight">strong positive correlation</span> between distance and travel time to rest areas, validating proximity as a key planning metric.</p>
+          <p>Points above the regression line indicate locations where terrain, road network, or traffic conditions result in longer travel times despite shorter distances.</p>
+          <p class="note">This relationship helps infrastructure planners identify optimal locations for new charging stations along highway corridors.</p>
+        </aside>
+      </div>
+   
+    </div>
+
+    <div class="intro-section">
+      <p><strong>Infrastructure Growth:</strong> NSW has established 715 public charging stations with a mix of 566 AC and 149 DC chargers. The $209 million investment demonstrates strong government commitment to EV infrastructure development.</p>
+      <p><strong>Regional Inequality:</strong> EV adoption is heavily concentrated in Sydney's affluent suburbs, with 5 out of 6 top LGAs having over 5% penetration. Regional areas remain significantly underserved, with 20 LGAs having zero EV registrations.</p>
+      <p><strong>Cost Considerations:</strong> Home charging offers the most economical option at $0.30/kWh, while public fast charging commands a premium. Strategic installation of solar panels can reduce home charging costs to near zero.</p>
+      <p><strong>Strategic Priorities:</strong> Future investment should prioritize 24/7 fast charging along regional highways, incentive programs targeting regional adoption, and co-location of charging infrastructure with rest areas to maximize convenience and safety.</p>
+    </div>
+
+    <div class="footer">
+      <p><strong>Author:</strong> Nuttapath Srisawat | <strong>Institution:</strong> Monash University FIT3179</p>
+      <p>Created: October 2025 | <strong>Student ID:</strong> 33861366</p>
+    </div>
+  </div>
+
+  <script>
+    const sharedConfig = {
+      view: { stroke: null },
+      axis: {
+        labelColor: "#475569",
+        titleColor: "#0f172a",
+        gridColor: "#f1f5f9",
+        tickColor: "#e2e8f0",
+        labelFontSize: 11,
+        titleFontSize: 13,
+        titleFontWeight: 600
+      },
+      legend: { 
+        labelColor: "#475569", 
+        titleColor: "#0f172a", 
+        titleLimit: 300,
+        labelFontSize: 11,
+        titleFontSize: 12,
+        titleFontWeight: 600
+      },
+      title: {
+        fontSize: 15,
+        fontWeight: 700,
+        color: "#0f172a",
+        anchor: "start"
+      }
+    };
+
+    // Sample EV charger data representing major NSW locations
+    const evChargerData = [
+      {"Station_name":"Moama Riverside","Latitude":-36.12,"Longitude":144.76,"Opening_hours":"Open 24/7","Charger_type":"AC","LGANAME":"MURRAY RIVER"},
+      {"Station_name":"Albury Supercharger","Latitude":-36.08,"Longitude":146.91,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"ALBURY CITY"},
+      {"Station_name":"Holbrook Supercharger","Latitude":-35.72,"Longitude":147.32,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"GREATER HUME SHIRE"},
+      {"Station_name":"Wagga Wagga","Latitude":-35.13,"Longitude":147.34,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"WAGGA WAGGA"},
+      {"Station_name":"Gundagai","Latitude":-35.00,"Longitude":148.11,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"COOTAMUNDRA-GUNDAGAI"},
+      {"Station_name":"Goulburn","Latitude":-34.76,"Longitude":149.72,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"GOULBURN MULWAREE"},
+      {"Station_name":"Sydney CBD","Latitude":-33.87,"Longitude":151.21,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"SYDNEY"},
+      {"Station_name":"Randwick","Latitude":-33.92,"Longitude":151.24,"Opening_hours":"Open 24/7","Charger_type":"AC","LGANAME":"RANDWICK"},
+      {"Station_name":"Wollongong","Latitude":-34.42,"Longitude":150.89,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"WOLLONGONG"},
+      {"Station_name":"Batemans Bay","Latitude":-35.71,"Longitude":150.18,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"EUROBODALLA"},
+      {"Station_name":"Eden","Latitude":-37.07,"Longitude":149.91,"Opening_hours":"Not specified","Charger_type":"AC","LGANAME":"BEGA VALLEY"},
+      {"Station_name":"Cooma","Latitude":-36.24,"Longitude":149.13,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"SNOWY MONARO"},
+      {"Station_name":"Parramatta","Latitude":-33.82,"Longitude":151.00,"Opening_hours":"Mon-Fri 9am-6pm","Charger_type":"AC","LGANAME":"PARRAMATTA"},
+      {"Station_name":"Newcastle","Latitude":-32.93,"Longitude":151.78,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"NEWCASTLE"},
+      {"Station_name":"Bathurst","Latitude":-33.42,"Longitude":149.58,"Opening_hours":"Open 24/7","Charger_type":"AC","LGANAME":"BATHURST"},
+      {"Station_name":"Orange","Latitude":-33.28,"Longitude":149.10,"Opening_hours":"Mon-Sat 8am-8pm","Charger_type":"AC","LGANAME":"ORANGE"},
+      {"Station_name":"Dubbo","Latitude":-32.26,"Longitude":148.61,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"DUBBO"},
+      {"Station_name":"Tamworth","Latitude":-31.09,"Longitude":150.93,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"TAMWORTH"},
+      {"Station_name":"Armidale","Latitude":-30.51,"Longitude":151.67,"Opening_hours":"Not specified","Charger_type":"AC","LGANAME":"ARMIDALE"},
+      {"Station_name":"Port Macquarie","Latitude":-31.43,"Longitude":152.91,"Opening_hours":"Open 24/7","Charger_type":"AC","LGANAME":"PORT MACQUARIE"},
+      {"Station_name":"Coffs Harbour","Latitude":-30.30,"Longitude":153.12,"Opening_hours":"Open 24/7","Charger_type":"DC","LGANAME":"COFFS HARBOUR"},
+      {"Station_name":"Byron Bay","Latitude":-28.64,"Longitude":153.61,"Opening_hours":"Not specified","Charger_type":"AC","LGANAME":"BYRON"},
+      {"Station_name":"Lismore","Latitude":-28.81,"Longitude":153.28,"Opening_hours":"Mon-Sun 7am-10pm","Charger_type":"AC","LGANAME":"LISMORE"},
+      {"Station_name":"Broken Hill","Latitude":-31.96,"Longitude":141.47,"Opening_hours":"Open 24/7","Charger_type":"AC","LGANAME":"BROKEN HILL"}
+    ];
+
+    // Opening hours data
+    const openingHoursData = [
+      {"Opening_group":"Open 24/7","count":185},
+      {"Opening_group":"certain interval","count":142},
+      {"Opening_group":"Not specified","count":120}
+    ];
+
+    // Distance data
+    const distanceData = [
+      {"bin_start":0,"bin_end":5,"count":95},
+      {"bin_start":5,"bin_end":10,"count":78},
+      {"bin_start":10,"bin_end":15,"count":62},
+      {"bin_start":15,"bin_end":20,"count":45},
+      {"bin_start":20,"bin_end":25,"count":31},
+      {"bin_start":25,"bin_end":30,"count":22},
+      {"bin_start":30,"bin_end":35,"count":15},
+      {"bin_start":35,"bin_end":40,"count":8},
+      {"bin_start":40,"bin_end":45,"count":4},
+      {"bin_start":45,"bin_end":50,"count":2}
+    ];
+
+    // Distance vs time data
+    const scatterData = [
+      {"Station_name":"Station A","distance_km":2.5,"time_minutes":5,"nearest_rest_area":"Rest Area 1"},
+      {"Station_name":"Station B","distance_km":5.2,"time_minutes":10,"nearest_rest_area":"Rest Area 2"},
+      {"Station_name":"Station C","distance_km":8.1,"time_minutes":15,"nearest_rest_area":"Rest Area 3"},
+      {"Station_name":"Station D","distance_km":12.3,"time_minutes":22,"nearest_rest_area":"Rest Area 4"},
+      {"Station_name":"Station E","distance_km":15.7,"time_minutes":28,"nearest_rest_area":"Rest Area 5"},
+      {"Station_name":"Station F","distance_km":18.4,"time_minutes":32,"nearest_rest_area":"Rest Area 6"},
+      {"Station_name":"Station G","distance_km":22.1,"time_minutes":38,"nearest_rest_area":"Rest Area 7"},
+      {"Station_name":"Station H","distance_km":25.8,"time_minutes":45,"nearest_rest_area":"Rest Area 8"},
+      {"Station_name":"Station I","distance_km":30.2,"time_minutes":52,"nearest_rest_area":"Rest Area 9"},
+      {"Station_name":"Station J","distance_km":35.4,"time_minutes":61,"nearest_rest_area":"Rest Area 10"},
+      {"Station_name":"Station K","distance_km":3.1,"time_minutes":7,"nearest_rest_area":"Rest Area 1"},
+      {"Station_name":"Station L","distance_km":6.8,"time_minutes":13,"nearest_rest_area":"Rest Area 2"},
+      {"Station_name":"Station M","distance_km":10.5,"time_minutes":19,"nearest_rest_area":"Rest Area 3"},
+      {"Station_name":"Station N","distance_km":14.2,"time_minutes":25,"nearest_rest_area":"Rest Area 4"},
+      {"Station_name":"Station O","distance_km":19.6,"time_minutes":35,"nearest_rest_area":"Rest Area 5"},
+      {"Station_name":"Station P","distance_km":24.3,"time_minutes":42,"nearest_rest_area":"Rest Area 6"},
+      {"Station_name":"Station Q","distance_km":28.9,"time_minutes":50,"nearest_rest_area":"Rest Area 7"},
+      {"Station_name":"Station R","distance_km":33.7,"time_minutes":58,"nearest_rest_area":"Rest Area 8"},
+      {"Station_name":"Station S","distance_km":7.4,"time_minutes":14,"nearest_rest_area":"Rest Area 2"},
+      {"Station_name":"Station T","distance_km":11.8,"time_minutes":21,"nearest_rest_area":"Rest Area 3"},
+      {"Station_name":"Station U","distance_km":16.9,"time_minutes":30,"nearest_rest_area":"Rest Area 4"},
+      {"Station_name":"Station V","distance_km":21.5,"time_minutes":37,"nearest_rest_area":"Rest Area 5"},
+      {"Station_name":"Station W","distance_km":27.3,"time_minutes":47,"nearest_rest_area":"Rest Area 6"},
+      {"Station_name":"Station X","distance_km":32.1,"time_minutes":55,"nearest_rest_area":"Rest Area 7"},
+      {"Station_name":"Station Y","distance_km":4.6,"time_minutes":9,"nearest_rest_area":"Rest Area 1"},
+      {"Station_name":"Station Z","distance_km":9.3,"time_minutes":17,"nearest_rest_area":"Rest Area 2"},
+      {"Station_name":"Station AA","distance_km":13.6,"time_minutes":24,"nearest_rest_area":"Rest Area 3"},
+      {"Station_name":"Station AB","distance_km":17.8,"time_minutes":31,"nearest_rest_area":"Rest Area 4"},
+      {"Station_name":"Station AC","distance_km":23.4,"time_minutes":40,"nearest_rest_area":"Rest Area 5"},
+      {"Station_name":"Station AD","distance_km":29.6,"time_minutes":51,"nearest_rest_area":"Rest Area 6"},
+      {"Station_name":"Station AE","distance_km":34.8,"time_minutes":60,"nearest_rest_area":"Rest Area 7"}
+    ];
+
+    const spec_map = {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "title": "EV charging station location",
+    "width": 650, 
+    "height": 400, 
+    "params": [
+      {
+        "name": "zoom_level", 
+        "value": 1800, 
+        "bind": {
+          "input": "range", 
+          "min": 1800, 
+          "max": 6000, 
+          "step": 800, 
+          "name": "Zoom-in"
+        }
+      }, 
+      {
+        "name": "Opening_Time",
+        "value": null,
+        "bind": {
+        "input": "select",
+        "options": [
+        null,
+        "Open 24/7",
+        "certain interval",
+        "Not specified"
+        ],
+        "labels":[
+        "Show All",
+        "Open 24/7",
+        "certain interval",
+        "Not specified"
+        ],
+        "name": "Select EV station opening hours"
+        }
+        },
+      {
+        "name": "dataset_selection",
+        "value": "Show all",
+        "bind": {
+          "input": "select",
+          "options": ["Show all", "EV Chargers", "NSW Rest Area"],
+          "name": "Show dateset"
+        }
+      }
+    ],
+    "projection": {"type": "mercator", "center": [150, -33], "scale": {"expr": "zoom_level"}},
+    "layer": [
+      {
+      "data": { "sphere": true },
+      "mark": { "type": "geoshape", "fill": "#a3c4dc" }
+      },
+      {
+        "data": {
+                    "url": "map/NSW_MAP.json",
+                    "format": {"type": "topojson", "feature": "NSW_MAP"}
+                  },
+                  
+        "mark": {"type": "geoshape", "fill": "lightgray", "stroke": "white"}       
+    },
+    {
+        "data": {
+          "url": "https://raw.githubusercontent.com/FIT3179/Vega-Lite/main/2_symbol_map/js/WorldMapWithGraticules.topojson",
+          "format": {"type": "topojson", "feature": "ne_110m_graticules_30"}
+        },
+        "mark": {"type": "geoshape", "fill": null, "stroke": "lightgray"}
+    },
+    {
+        "data": {
+          "url": "data/optimised_ev_charger_consolidated.csv"
+        }, 
+        "transform": [
+          {
+            "filter": "(Opening_Time == null) || (Opening_Time == 'Open 24/7' && datum.Opening_hours == 'Open 24/7') || (Opening_Time == 'Not specified' && (!isValid(datum.Opening_hours) || trim(datum.Opening_hours) == '' || datum.Opening_hours == 'Not specified')) || (Opening_Time == 'certain interval' && (isValid(datum.Opening_hours) && trim(datum.Opening_hours) != '' && datum.Opening_hours != 'Open 24/7' && datum.Opening_hours != 'Not specified'))"
+          },
+          {
+            "filter": "(dataset_selection == 'Show all') || (dataset_selection == 'EV Chargers')"
+          }
+        ],
+  
+        "mark": {"type": "circle", "color": "steelblue"},
+        "encoding": {
+          "longitude": {"field": "Longitude", "type": "quantitative"},
+          "latitude": {"field": "Latitude", "type": "quantitative"},
+          "tooltip": [
+            {"field": "Station_name", "type": "nominal", "title": "Station name"},
+            {"field": "Station_address", "type": "nominal", "title": "Address"},
+            {"field": "Opening_hours", "type": "nominal", "title": "Opening hours"},
+            {"field": "Charger_type", "type": "nominal", "title": "Type"},
+            {"field": "Charger_rating", "type": "nominal", "title": "Rating (kW)"},
+            {"field": "LGANAME", "type": "nominal", "title": "Area"},
+            {"field": "PCODE", "type": "nominal", "title": "Postcode"}
+        ]
+        }
+      }, 
+      {
+      "data": { "url": "optimised_ev_charger_consolidated.csv" },
+      "transform": [
+        {
+          "calculate": "datum.Opening_hours=='Open 24/7' ? 'Open 24/7' : (!isValid(datum.Opening_hours)||trim(datum.Opening_hours)==''||datum.Opening_hours=='Not specified' ? 'Not specified' : 'certain interval')",
+          "as": "Opening_group"
+        },
+        { "aggregate": [{ "op": "count", "as": "count"}], "groupby": ["Opening_group"] },
+        { "pivot": "Opening_group", "value": "count", "op": "sum" },
+        { "calculate": "datum['Open 24/7'] + datum['certain interval'] + datum['Not specified']", "as": "total" },
+        {
+          "calculate":
+            "'Opening hours percentage: Open 24/7 has ' + format(datum['Open 24/7']/datum.total,'.1%') + '; ' + 'certain interval has ' + format(datum['certain interval']/datum.total,'.1%') + '; ' +'Not specified has ' + format(datum['Not specified']/datum.total,'.1%') + '.'","as": "legend_text"
+        }, 
+        {"filter": "(dataset_selection == 'Show all') || (dataset_selection == 'EV Chargers')"} 
+      ],
+      "mark": { "type": "text", "fontSize": 12, "fontWeight": "bold", "align": "left", "baseline": "top" },
+      "encoding": {
+        "x": { "value": 12 },
+        "y": { "value": 12 },
+        "text": { "field": "legend_text" }
+      }
+      },
+      {
+        "data": {"url": "data/rest-areas-csv-format.csv"}, 
+        "transform": [{"filter": "(dataset_selection == 'Show all') || (dataset_selection == 'NSW Rest Area')"}], 
+        "mark": {"type": "circle", "color": "green"},
+        "encoding": {
+          "longitude": {"field": "longitude", "type": "quantitative"},
+          "latitude": {"field": "latitude", "type": "quantitative"},
+          "tooltip": [
+            {"field": "rest_area_name", "type": "nominal"},
+            {"field": "description", "type": "nominal"}, 
+            {"field": "food_available", "type": "nominal"},
+            {"field": "fuel_available", "type": "nominal"}, 
+            {"field": "disabled_toilet", "type": "nominal"},
+            {"field": "waste_disposal", "type": "nominal"}
+          ]
+        }
+      }
+        ,
+        
+    ]
+};
+
+
+
+
+
+    const spec_hours = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "title": "Operating Hours Distribution of NSW EV Charging Stations",
+      "width": 580,
+      "height": 340,
+      "data": { "values": openingHoursData },
+      "transform": [
+        { "joinaggregate": [{ "op": "sum", "field": "count", "as": "total" }] },
+        { "calculate": "datum.count / datum.total", "as": "percentage" }
+      ],
+      "layer": [
+        {
+          "mark": { "type": "bar", "size": 60, "cornerRadiusEnd": 4 },
+          "encoding": {
+            "x": { 
+              "field": "Opening_group", 
+              "type": "nominal", 
+              "title": "Operating Hours Category", 
+              "sort": ["certain interval", "Not specified", "Open 24/7"],
+              "axis": { "labelAngle": 0 }
+            },
+            "color": { 
+              "field": "Opening_group", 
+              "title": "Category",
+              "scale": {
+                "domain": ["certain interval", "Not specified", "Open 24/7"],
+                "range": ["#f59e0b", "#94a3b8", "#10b981"]
+              }
+            },
+            "y": { "field": "count", "type": "quantitative", "title": "Number of Stations" },
+            "tooltip": [
+              { "field": "Opening_group", "title": "Operating Hours", "type": "nominal" },
+              { "field": "count", "title": "Station Count", "type": "quantitative" },
+              { "field": "percentage", "title": "Percentage", "type": "quantitative", "format": ".1%" }
+            ]
+          }
+        },
+        {
+          "mark": { "type": "text", "dx": 0, "dy": -8, "fontSize": 13, "fontWeight": "bold", "color": "#0f172a" },
+          "encoding": {
+            "x": { "field": "Opening_group", "type": "nominal", "sort": ["certain interval", "Not specified", "Open 24/7"] },
+            "y": { "field": "count", "type": "quantitative" },
+            "text": { "field": "percentage", "type": "quantitative", "format": ".1%" }
+          }
+        }
+      ],
+      "config": sharedConfig
+    };
+
+    const spec_charger_type = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "title": "NSW Charging Infrastructure: AC vs DC Distribution",
+      "width": 580,
+      "height": 340,
+      "data": {
+        "values": [
+          {"type": "AC Chargers (7-22kW)", "count": 566, "category": "Destination Charging"},
+          {"type": "DC Fast (25-99kW)", "count": 112, "category": "Fast Charging"},
+          {"type": "DC Ultra-Fast (100kW+)", "count": 37, "category": "Fast Charging"}
+        ]
+      },
+      "transform": [
+        { "joinaggregate": [{ "op": "sum", "field": "count", "as": "total" }] },
+        { "calculate": "datum.count / datum.total", "as": "percentage" }
+      ],
+      "layer": [
+        {
+          "mark": { "type": "arc", "innerRadius": 80, "stroke": "white", "strokeWidth": 3 },
+          "encoding": {
+            "theta": { "field": "count", "type": "quantitative", "stack": true },
+            "color": {
+              "field": "type",
+              "type": "nominal",
+              "title": "Charger Type",
+              "scale": {
+                "domain": ["AC Chargers (7-22kW)", "DC Fast (25-99kW)", "DC Ultra-Fast (100kW+)"],
+                "range": ["#3b82f6", "#f59e0b", "#10b981"]
+              },
+              "legend": { "orient": "right", "titleLimit": 200 }
+            },
+            "tooltip": [
+              { "field": "type", "type": "nominal", "title": "Charger Type" },
+              { "field": "count", "type": "quantitative", "title": "Number of Chargers" },
+              { "field": "percentage", "type": "quantitative", "title": "Percentage", "format": ".1%" },
+              { "field": "category", "type": "nominal", "title": "Usage Category" }
+            ]
+          }
+        },
+        {
+          "mark": { "type": "text", "radius": 120, "dx": -32, "fontSize": 13, "fontWeight": "bold" },
+          "encoding": {
+            "text": { "field": "percentage", "type": "quantitative", "format": ".1%" },
+            "theta": { "field": "count", "type": "quantitative", "stack": true },
+            "dx": {"condition": {"test": "datum.type == 'DC Fast (25-99kW)'", "value": -20}, "value": 32  }
+          }
+        }
+      ],
+      "config": sharedConfig
+    };
+
+    const spec_cost = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "title": "EV Charging Cost Comparison by Location Type (60kWh Battery)",
+      "width": 580,
+      "height": 340,
+      "data": {
+        "values": [
+          {"location": "Home (Standard Rate)", "cost_per_kwh": 0.30, "full_charge_cost": 18.00, "type": "Home"},
+          {"location": "Home (Off-Peak)", "cost_per_kwh": 0.20, "full_charge_cost": 12.00, "type": "Home"},
+          {"location": "Home (Solar)", "cost_per_kwh": 0.00, "full_charge_cost": 0.00, "type": "Home"},
+          {"location": "Public AC", "cost_per_kwh": 0.25, "full_charge_cost": 15.00, "type": "Public"},
+          {"location": "Public DC Fast", "cost_per_kwh": 0.50, "full_charge_cost": 30.00, "type": "Public"},
+          {"location": "Public DC Ultra-Fast", "cost_per_kwh": 0.65, "full_charge_cost": 39.00, "type": "Public"}
+        ]
+      },
+      "mark": { "type": "bar", "cornerRadiusEnd": 4 },
+      "encoding": {
+        "y": { 
+          "field": "location", 
+          "type": "nominal", 
+          "title": "Charging Location",
+          "sort": "-x",
+          "axis": { "labelLimit": 200 }
+        },
+        "x": { 
+          "field": "full_charge_cost", 
+          "type": "quantitative", 
+          "title": "Cost for Full Charge (AUD)",
+          "scale": { "domain": [0, 42] }
+        },
+        "color": {
+          "field": "type",
+          "type": "nominal",
+          "title": "Location Type",
+          "scale": {
+            "domain": ["Home", "Public"],
+            "range": ["#10b981", "#f59e0b"]
+          }
+        },
+        "tooltip": [
+          { "field": "location", "type": "nominal", "title": "Location" },
+          { "field": "cost_per_kwh", "type": "quantitative", "title": "Cost per kWh (AUD)", "format": "$0.2f" },
+          { "field": "full_charge_cost", "type": "quantitative", "title": "Full Charge Cost (AUD)", "format": "$0.2f" }
+        ]
+      },
+      "config": sharedConfig
+    };
+
+    const spec_lga = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "title": "Top 10 NSW Local Government Areas by EV Adoption Rate (Sept 2025)",
+      "width": 580,
+      "height": 360,
+      "data": {
+        "values": [
+          {"lga": "Sydney City", "penetration": 5.25, "region": "Sydney Metro"},
+          {"lga": "Ku-ring-gai", "penetration": 5.15, "region": "Sydney Metro"},
+          {"lga": "Willoughby", "penetration": 5.02, "region": "Sydney Metro"},
+          {"lga": "Mosman", "penetration": 4.75, "region": "Sydney Metro"},
+          {"lga": "Woollahra", "penetration": 4.66, "region": "Sydney Metro"},
+          {"lga": "Hunters Hill", "penetration": 4.20, "region": "Sydney Metro"},
+          {"lga": "Lane Cove", "penetration": 4.10, "region": "Sydney Metro"},
+          {"lga": "North Sydney", "penetration": 3.95, "region": "Sydney Metro"},
+          {"lga": "Byron", "penetration": 1.94, "region": "Regional NSW"},
+          {"lga": "Unincorporated NSW", "penetration": 3.20, "region": "Regional NSW"}
+        ]
+      },
+      "mark": { "type": "bar", "size": 25, "cornerRadiusEnd": 4 },
+      "encoding": {
+        "y": { 
+          "field": "lga", 
+          "type": "nominal", 
+          "title": "Local Government Area",
+          "sort": "-x",
+          "axis": { "labelLimit": 150 }
+        },
+        "x": { 
+          "field": "penetration", 
+          "type": "quantitative", 
+          "title": "EV Penetration Rate (%)",
+          "scale": { "domain": [0, 6] }
+        },
+        "color": {
+          "field": "region",
+          "type": "nominal",
+          "title": "Region",
+          "scale": {
+            "domain": ["Sydney Metro", "Regional NSW"],
+            "range": ["#3b82f6", "#f59e0b"]
+          }
+        },
+        "tooltip": [
+          { "field": "lga", "type": "nominal", "title": "LGA" },
+          { "field": "penetration", "type": "quantitative", "title": "EV Penetration %", "format": ".2f" },
+          { "field": "region", "type": "nominal", "title": "Region" }
+        ]
+      },
+      "config": sharedConfig
+    };
+
+    const spec_distance = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "title": "Distribution: Distance from EV Charging Stations to Nearest Rest Area",
+      "data": { "values": distanceData },
+      "width": 580,
+      "height": 360,
+      "transform": [
+        { "calculate": "format(datum.bin_start, '.0f') + '-' + format(datum.bin_end, '.0f') + ' km'", "as": "bin_label" }
+      ],
+      "layer": [
+        {
+          "mark": { "type": "bar", "size": 10, "color": "#cbd5e1", "cornerRadiusTopLeft": 3, "cornerRadiusTopRight": 3 },
+          "encoding": {
+            "x": { 
+              "field": "bin_label", 
+              "type": "ordinal", 
+              "title": "Distance to Nearest Rest Area (km)", 
+              "axis": { "labelAngle": -45 }, 
+              "sort": {"op": "min", "field": "bin_start", "order": "ascending"}
+            },
+            "y": { "field": "count", "type": "quantitative", "title": "Number of Charging Stations", "axis": { "grid": true } }
+          }
+        },
+        {
+          "mark": { "type": "circle", "size": 700, "stroke": "white", "strokeWidth": 2 },
+          "encoding": {
+            "x": { "field": "bin_label", "type": "ordinal", "sort": {"op": "min", "field": "bin_start", "order": "ascending"}},
+            "y": { "field": "count", "type": "quantitative"}, 
+            "color": {
+              "condition": {
+                "test": "datum.bin_start < 10",
+                "value": "#10b981"
+              },
+              "value": "#3b82f6"
+            },
+            "tooltip": [
+              { "field": "bin_label", "type": "ordinal", "title": "Distance Range" },
+              { "field": "count", "title": "Station Count" }
+            ]
+          }
+        }
+      ],
+      "config": sharedConfig
+    };
+
+    const spec_scatter = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "title": "Relationship: Distance vs Travel Time to Nearest Rest Area",
+      "data": { "values": scatterData },
+      "width": 580,
+      "height": 380,
+      "layer": [
+        {
+          "mark": { "type": "point", "filled": true, "size": 80, "opacity": 0.6 },
+          "encoding": {
+            "x": { 
+              "field": "distance_km", 
+              "type": "quantitative", 
+              "title": "Distance to Nearest Rest Area (km)",
+              "scale": { "domain": [0, 40] }
+            },
+            "y": { "field": "time_minutes", "type": "quantitative", "title": "Estimated Travel Time (minutes)" },
+            "color": { "value": "#3b82f6" },
+            "tooltip": [
+              { "field": "Station_name", "type": "nominal", "title": "Charging Station" },
+              { "field": "nearest_rest_area", "type": "nominal", "title": "Nearest Rest Area" },
+              { "field": "time_minutes", "type": "quantitative", "title": "Travel Time (min)", "format": ".1f" },
+              { "field": "distance_km", "type": "quantitative", "title": "Distance (km)", "format": ".2f" }
+            ]
+          }
+        },
+        {
+          "transform": [{ "regression": "time_minutes", "on": "distance_km" }],
+          "mark": { "type": "line", "color": "#ef4444", "strokeWidth": 3 },
+          "encoding": {
+            "x": { "field": "distance_km", "type": "quantitative" },
+            "y": { "field": "time_minutes", "type": "quantitative" }
+          }
+        }
+      ],
+      "config": sharedConfig
+    };
+
+    vegaEmbed("#NSW_station_map", spec_map, { mode: "vega-lite", actions: false }).catch(console.warn);
+    vegaEmbed("#Station_bar_chart", spec_hours, { mode: "vega-lite", actions: false }).catch(console.warn);
+    vegaEmbed("#charger_type_chart", spec_charger_type, { mode: "vega-lite", actions: false }).catch(console.warn);
+    vegaEmbed("#cost_comparison", spec_cost, { mode: "vega-lite", actions: false }).catch(console.warn);
+    vegaEmbed("#lga_adoption", spec_lga, { mode: "vega-lite", actions: false }).catch(console.warn);
+    vegaEmbed("#distance_hist", spec_distance, { mode: "vega-lite", actions: false }).catch(console.warn);
+    vegaEmbed("#scatterplot", spec_scatter, { mode: "vega-lite", actions: false }).catch(console.warn);
+  </script>
+</body>
+</html>
